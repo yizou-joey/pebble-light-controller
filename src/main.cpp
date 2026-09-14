@@ -5,6 +5,11 @@
 #include "iro_asset.h"
 
 constexpr int NUM_LEDS = 60;
+// The LEDs are powered from the XIAO's 5V pin, which is just USB power passed through:
+// a laptop port gives roughly 500-900 mA. 60 LEDs at full white would want ~3600 mA,
+// so FastLED is given this budget and dims the output as needed to stay inside it.
+// Raise it only when every board runs from a 2 A wall charger.
+constexpr uint32_t LED_MILLIAMP_BUDGET = 900;
 char apSsid[16] = "Pebble";  // per-board name, filled from the chip MAC in setup()
 CRGB leds[NUM_LEDS];
 CRGB color = CRGB::Red;
@@ -23,7 +28,7 @@ const char PAGE[] PROGMEM = R"HTML(<!doctype html>
 <div id="preview" aria-label="选定颜色预览"></div><div class="readout"><span id="hex">#FF0000</span><span id="light">已熄灭</span></div>
 <div id="wheel" tabindex="0" role="group" aria-label="连续色轮：左右键调整色相，上下键调整饱和度" aria-describedby="wheel-help"></div>
 <p id="wheel-help" class="muted">绕圈换颜色，向中心变浅。按住拖动即可变色。</p>
-<label class="slider-label" for="brightness"><span>亮度 <strong id="level">20</strong></span><span class="muted">上限 20 / 255</span></label><input id="brightness" type="range" min="0" max="20" value="20">
+<label class="slider-label" for="brightness"><span>亮度 <strong id="level">20</strong></span><span class="muted">最大 255 · 电源自动限流</span></label><input id="brightness" type="range" min="0" max="255" value="20">
 <div id="quick" aria-label="快捷颜色"></div>
 </main><div class="footer"><button id="off" type="button">全部熄灭</button></div>
 <script src="/iro.min.js"></script>
@@ -125,7 +130,7 @@ void setLight() {
         String value = server.arg("brightness");
         valid = valid && !value.isEmpty() && value.length() <= 3;
         for (unsigned i = 0; i < value.length(); ++i) valid = valid && isdigit(static_cast<unsigned char>(value[i]));
-        if (valid) nextBrightness = constrain(value.toInt(), 0L, 20L);
+        if (valid) nextBrightness = constrain(value.toInt(), 0L, 255L);
     }
     if (!valid) { server.send(400, "application/json", "{\"error\":\"invalid value\"}"); return; }
     color = nextColor;
@@ -138,6 +143,7 @@ void setLight() {
 void setup() {
     Serial.begin(115200);
     FastLED.addLeds<WS2812B, D10, GRB>(leds, NUM_LEDS);
+    FastLED.setMaxPowerInVoltsAndMilliamps(5, LED_MILLIAMP_BUDGET);
     applyLight();
     uint64_t mac = ESP.getEfuseMac();
     // Suffix = last two bytes of the MAC printed on the chip, so each board gets its own network.
