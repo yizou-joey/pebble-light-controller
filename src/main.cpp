@@ -4,9 +4,8 @@
 #include <WebServer.h>
 #include "iro_asset.h"
 
-constexpr char AP_SSID[] = "Pebble-Test";
-constexpr char AP_PASSWORD[] = "pebble123";
 constexpr int NUM_LEDS = 60;
+char apSsid[16] = "Pebble";  // per-board name, filled from the chip MAC in setup()
 CRGB leds[NUM_LEDS];
 CRGB color = CRGB::Red;
 uint8_t brightness = 20;
@@ -88,7 +87,7 @@ async function pump(){
  finally{busy=false;pump();}
 }
 async function init(){render();busy=true;const initialRevision=revision;
- try{const result=await request('/api/state');if(revision===initialRevision){desired={color:result.color,brightness:result.brightness,enabled:result.enabled};render();}status('已连接');}
+ try{const result=await request('/api/state');if(result.board){document.querySelector('h1').textContent=result.board;document.title=result.board+' · 灯光控制';}if(revision===initialRevision){desired={color:result.color,brightness:result.brightness,enabled:result.enabled};render();}status('已连接');}
  catch(e){status('连接中断',true);}finally{busy=false;pump();}}
 init();
 </script></body></html>)HTML";
@@ -96,7 +95,7 @@ init();
 void sendState() {
     char value[8];
     snprintf(value, sizeof(value), "#%02x%02x%02x", color.r, color.g, color.b);
-    String body = "{\"color\":\"" + String(value) + "\",\"brightness\":" + String(brightness);
+    String body = "{\"board\":\"" + String(apSsid) + "\",\"color\":\"" + String(value) + "\",\"brightness\":" + String(brightness);
     body += ",\"enabled\":";
     body += enabled ? "true" : "false";
     body += ",\"isOn\":";
@@ -140,10 +139,16 @@ void setup() {
     Serial.begin(115200);
     FastLED.addLeds<WS2812B, D10, GRB>(leds, NUM_LEDS);
     applyLight();
+    uint64_t mac = ESP.getEfuseMac();
+    // Suffix = last two bytes of the MAC printed on the chip, so each board gets its own network.
+    uint16_t suffix = static_cast<uint16_t>(((mac >> 32) & 0xff) << 8 | ((mac >> 40) & 0xff));
+    snprintf(apSsid, sizeof(apSsid), "Pebble-%04X", suffix);
+    // Ten boards in one room: spread them over channels 1 / 6 / 11 instead of all defaulting to 1.
+    int channel = 1 + 5 * static_cast<int>(mac % 3);
     WiFi.mode(WIFI_AP);
     IPAddress ip(192, 168, 4, 1);
     IPAddress subnet(255, 255, 255, 0);
-    if (!WiFi.softAPConfig(ip, ip, subnet) || !WiFi.softAP(AP_SSID, AP_PASSWORD)) {
+    if (!WiFi.softAPConfig(ip, ip, subnet) || !WiFi.softAP(apSsid, nullptr, channel)) {
         Serial.println("ERROR: Wi-Fi AP startup failed. Press RESET to retry.");
         return;
     }
@@ -161,7 +166,8 @@ void setup() {
     server.on("/api/off", HTTP_POST, []() { enabled = false; applyLight(); sendState(); });
     server.begin();
     apReady = true;
-    Serial.println("Wi-Fi AP ready: Pebble-Test");
+    Serial.print("Wi-Fi AP ready (open network): ");
+    Serial.println(apSsid);
     Serial.println("Open http://192.168.4.1");
 }
 
