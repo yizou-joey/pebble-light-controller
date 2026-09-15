@@ -175,7 +175,13 @@ void setup() {
     uint64_t mac = ESP.getEfuseMac();
     // Suffix = last two bytes of the MAC printed on the chip, so each board gets its own network.
     uint16_t suffix = static_cast<uint16_t>(((mac >> 32) & 0xff) << 8 | ((mac >> 40) & 0xff));
-    snprintf(apSsid, sizeof(apSsid), "Pebble-%04X", suffix);
+    // A human letter (A, B, C...) set once during provisioning rides along after the hex;
+    // the hex guarantees uniqueness even if two boards ever get taped with the same letter.
+    String letter = prefs.getString("letter", "");
+    if (letter.length() == 1 && isupper(static_cast<unsigned char>(letter[0])))
+        snprintf(apSsid, sizeof(apSsid), "Pebble-%04X-%c", suffix, letter[0]);
+    else
+        snprintf(apSsid, sizeof(apSsid), "Pebble-%04X", suffix);
     // Ten boards in one room: spread them over channels 1 / 6 / 11 instead of all defaulting to 1.
     int channel = 1 + 5 * static_cast<int>(mac % 3);
     WiFi.mode(WIFI_AP);
@@ -204,7 +210,33 @@ void setup() {
     Serial.println("Open http://192.168.4.1");
 }
 
+// Provisioning-time serial commands: "letter X" saves the board letter and reboots
+// so the network name picks it up; "letter ?" reports the current one.
+void handleSerial() {
+    static String line;
+    while (Serial.available()) {
+        char c = Serial.read();
+        if (c != '\n' && c != '\r') { if (line.length() < 32) line += c; continue; }
+        if (line.startsWith("letter ")) {
+            String arg = line.substring(7);
+            arg.trim();
+            if (arg == "?") {
+                Serial.printf("letter=%s ssid=%s\n", prefs.getString("letter", "(none)").c_str(), apSsid);
+            } else if (arg.length() == 1 && isupper(static_cast<unsigned char>(arg[0]))) {
+                prefs.putString("letter", arg);
+                Serial.printf("letter=%s saved, rebooting\n", arg.c_str());
+                delay(100);
+                ESP.restart();
+            } else {
+                Serial.println("usage: letter A..Z | letter ?");
+            }
+        }
+        line = "";
+    }
+}
+
 void loop() {
     if (apReady) server.handleClient();
+    handleSerial();
     delay(2);
 }
