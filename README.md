@@ -47,6 +47,25 @@ the board. At high brightness on white you will see the output stop getting brig
 that is the power governor doing its job, not a bug. If every board runs from a 2 A
 wall charger, the budget in `src/main.cpp` can be raised.
 
+## Provisioning the class set (one-time per board)
+
+Each class board gets a human letter appended to its network name, e.g.
+**Pebble-A354-A**: the hex part comes from the chip (always unique), the letter
+is what students look for and what's written on the board's tape. To set up the
+boards, with [uv](https://docs.astral.sh/uv/) and PlatformIO installed:
+
+1. Plug in **one** board.
+2. Run `uv run scripts/provision.py`. It flashes the firmware, assigns the next
+   free letter, verifies the board announces its full name, and records the
+   board in `scripts/board_registry.json`.
+3. Write the letter it shows on tape on the board (and the header and battery,
+   so kits stay together). Unplug, insert the next board.
+
+Running it on an already-provisioned board just reports its existing letter, so
+it never hands out duplicates. The letter lives in the board's flash settings
+and survives future reflashes. Commit `board_registry.json` after a provisioning
+session; it is the inventory of the class set.
+
 ## Things to try changing first
 
 All the firmware is one file, `src/main.cpp`.
