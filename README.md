@@ -31,13 +31,19 @@ pio run -t upload
 2. Join that network with a phone or laptop.
 3. Open **http://192.168.4.1** in a browser. The page header shows the board's name,
    so you can confirm you are on *your* board.
-4. Drag the color wheel; all LEDs follow. The four buttons are shortcuts.
-   全部熄灭 turns everything off.
+4. Drag the color wheel; all LEDs follow. Use **中文 / English** in the header to
+   switch languages; the browser remembers your choice. **Turn all lights off**
+   (全部熄灭) turns everything off.
 
 ### Set your LED count
 
-Strand lengths differ. Enter the number of LEDs on *your* strand in the
-灯珠数量 (LED count) field, 1-100. The board remembers it across power cycles.
+The **Light settings / 灯光设置** section groups brightness and LED count. Both
+controls have a slider and a clickable number field for precise input. Press Enter
+or leave the field to apply a valid whole number; Escape cancels the edit.
+
+Strand lengths differ. Set **LED count / 灯珠数量** to the number on *your* strand,
+1-100. The slider applies on release, and the board remembers the count across
+power cycles. Brightness updates live while dragging and is not saved across power cycles.
 
 ### Brightness and power
 
@@ -70,7 +76,7 @@ session; it is the inventory of the class set.
 
 All the firmware is one file, `src/main.cpp`.
 
-- The four quick colors (search for `'#ff0000'` in the page section).
+- The Chinese and English interface text (`messages` in the page section).
 - The default color at power-on (`CRGB color = CRGB::Red;`).
 - `examples/led_test_60.cpp` is a standalone strand test (moving dot, then blinks)
   useful when wiring a new strand.

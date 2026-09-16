@@ -26,30 +26,57 @@ bool apReady = false;
 const char PAGE[] PROGMEM = R"HTML(<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pebble · 灯光控制</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f4f3ef;color:#17251f;font:16px system-ui,-apple-system,sans-serif}main{max-width:640px;margin:auto;padding:24px 14px 130px}header{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:26px;margin:0}p{line-height:1.5}.muted{color:#55635b;font-size:14px}#status{font-size:13px;white-space:nowrap}#preview{height:46px;border:1px solid #adb8b0;border-radius:16px;margin-top:20px}.readout{display:flex;justify-content:space-between;align-items:center;margin:8px 0 14px}#hex{font:600 18px ui-monospace,monospace}button,input{font:inherit}button{cursor:pointer;touch-action:manipulation}button:focus-visible,input:focus-visible{outline:3px solid #176649;outline-offset:3px}#quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0 20px}.quick{min-height:48px;border:1px solid #bbc5be;background:white;border-radius:10px;color:#17251f}.dot{display:block;width:16px;height:16px;border:1px solid #a5aaa6;border-radius:50%;margin:0 auto 3px}#wheel{width:min(100%,340px);margin:12px auto 18px;touch-action:none;user-select:none}#wheel:focus-visible{outline:3px solid #176649;outline-offset:4px;border-radius:50%}.quick[aria-pressed=true]{box-shadow:inset 0 0 0 2px #17251f}input[type=range]{width:100%;height:44px;accent-color:#176649}.slider-label{display:flex;justify-content:space-between;gap:8px}.footer{position:fixed;bottom:0;left:0;right:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#f4f3eff2;border-top:1px solid #d7ddd7}.footer button{display:block;width:100%;max-width:612px;margin:auto;min-height:54px;border:0;border-radius:12px;background:#17251f;color:#fff;font-weight:650}h2{font-size:16px;margin:0}#light{font-size:14px}#status[data-error=true]{color:#a32c25}
+*{box-sizing:border-box}body{margin:0;background:#f4f3ef;color:#17251f;font:16px system-ui,-apple-system,sans-serif}main{max-width:640px;margin:auto;padding:24px 14px 130px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}h1{font-size:26px;margin:0;overflow-wrap:anywhere}p{line-height:1.5}.muted{color:#55635b;font-size:14px}#status{display:block;font-size:13px;margin-top:10px}#preview{height:46px;border:1px solid #adb8b0;border-radius:16px;margin-top:20px}.readout{display:flex;justify-content:space-between;align-items:center;margin:8px 0 14px}#hex{font:600 18px ui-monospace,monospace}button,input{font:inherit}button{cursor:pointer;touch-action:manipulation}button:focus-visible,input:focus-visible{outline:3px solid #176649;outline-offset:3px}.language{display:flex;border:1px solid #bbc5be;border-radius:10px;padding:3px;gap:3px}.language button{min-height:40px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:#17251f}.language button[aria-pressed=true]{background:#17251f;color:#fff}#wheel{width:min(100%,340px);margin:12px auto 18px;touch-action:none;user-select:none}#wheel:focus-visible{outline:3px solid #176649;outline-offset:4px;border-radius:50%}input[type=range]{width:100%;height:44px;accent-color:#176649;margin:4px 0}.settings{background:#fff;border:1px solid #d7ddd7;border-radius:16px;padding:18px;margin-top:22px}.control{margin-top:18px}.control+.control{border-top:1px solid #e4e8e4;padding-top:18px}.control-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.control-heading label{font-weight:600}.number{width:84px;min-height:44px;border:1px solid #bbc5be;border-radius:9px;padding:0 8px;background:#f8f9f6;color:#17251f;text-align:center;font-variant-numeric:tabular-nums}.control-note{margin:0;font-size:13px;line-height:1.5;color:#55635b}.footer{position:fixed;bottom:0;left:0;right:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#f4f3eff2;border-top:1px solid #d7ddd7}.footer button{display:block;width:100%;max-width:612px;margin:auto;min-height:54px;border:0;border-radius:12px;background:#17251f;color:#fff;font-weight:650}h2{font-size:16px;margin:0}#light{font-size:14px}#status[data-error=true]{color:#a32c25}
 </style></head><body><main>
-<header><h1>Pebble</h1><span id="status" role="status" aria-live="polite">连接中</span></header>
-<p class="muted">全部同色 · 拖动即变色</p>
-<div id="preview" aria-label="选定颜色预览"></div><div class="readout"><span id="hex">#FF0000</span><span id="light">已熄灭</span></div>
-<div id="wheel" tabindex="0" role="group" aria-label="连续色轮：左右键调整色相，上下键调整饱和度" aria-describedby="wheel-help"></div>
-<p id="wheel-help" class="muted">绕圈换颜色，向中心变浅。按住拖动即可变色。</p>
-<label class="slider-label" for="brightness"><span>亮度 <strong id="level">20</strong></span><span class="muted">最大 255 · 电源自动限流</span></label><input id="brightness" type="range" min="0" max="255" value="20">
-<div id="quick" aria-label="快捷颜色"></div>
-<label class="slider-label" for="count" style="margin-top:8px"><span>灯珠数量</span><span class="muted">1–100 · 断电后保留</span></label>
-<input id="count" type="number" min="1" max="100" value="60" inputmode="numeric" style="width:100%;min-height:44px;border:1px solid #bbc5be;border-radius:10px;padding:0 12px;background:#fff">
-</main><div class="footer"><button id="off" type="button">全部熄灭</button></div>
+<header><h1>Pebble</h1><nav class="language" data-i18n-aria="language" aria-label="语言"><button type="button" data-lang="zh" lang="zh-CN" aria-pressed="true">中文</button><button type="button" data-lang="en" lang="en" aria-pressed="false">English</button></nav></header>
+<span id="status" role="status" aria-live="polite">连接中</span>
+<p class="muted" data-i18n="intro">全部同色 · 拖动即变色</p>
+<div id="preview" data-i18n-aria="preview" aria-label="选定颜色预览"></div><div class="readout"><span id="hex">#FF0000</span><span id="light">已熄灭</span></div>
+<div id="wheel" tabindex="0" role="group" data-i18n-aria="wheel" aria-label="连续色轮：左右键调整色相，上下键调整饱和度" aria-describedby="wheel-help"></div>
+<p id="wheel-help" class="muted" data-i18n="wheelHelp">绕圈换颜色，向中心变浅。按住拖动即可变色。</p>
+<section class="settings" aria-labelledby="settings-title">
+<h2 id="settings-title" data-i18n="settings">灯光设置</h2>
+<div class="control">
+<div class="control-heading"><label id="brightness-label" for="brightness" data-i18n="brightness">亮度</label><input class="number" id="brightness-number" type="number" min="0" max="255" step="1" value="20" inputmode="numeric" aria-labelledby="brightness-label" aria-describedby="brightness-note"></div>
+<input id="brightness" type="range" min="0" max="255" step="1" value="20" aria-describedby="brightness-note">
+<p class="control-note" id="brightness-note" data-i18n="brightnessNote">0–255 · 实时调整 · 电源自动限流</p>
+</div>
+<div class="control">
+<div class="control-heading"><label id="count-label" for="count" data-i18n="count">灯珠数量</label><input class="number" id="count-number" type="number" min="1" max="100" step="1" value="60" inputmode="numeric" aria-labelledby="count-label" aria-describedby="count-note"></div>
+<input id="count" type="range" min="1" max="100" step="1" value="60" aria-describedby="count-note">
+<p class="control-note" id="count-note" data-i18n="countNote">1–100 · 松手后应用 · 断电后保留</p>
+</div>
+</section>
+</main><div class="footer"><button id="off" type="button" data-i18n="off">全部熄灭</button></div>
 <script src="/iro.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-let desired={color:'#ff0000',brightness:20,enabled:false};
+const messages={
+ zh:{title:'灯光控制',language:'语言',intro:'全部同色 · 拖动即变色',preview:'选定颜色预览',wheel:'连续色轮：左右键调整色相，上下键调整饱和度',wheelHelp:'绕圈换颜色，向中心变浅。按住拖动即可变色。',settings:'灯光设置',brightness:'亮度',count:'灯珠数量',brightnessNote:'0–255 · 实时调整 · 电源自动限流',countNote:'1–100 · 松手后应用 · 断电后保留',off:'全部熄灭',connecting:'连接中',connected:'已连接',sending:'发送中',sent:'已发送',disconnected:'连接中断',unknown:'结果未确认',zero:'亮度为 0',unlit:'已熄灭',lit:'同色常亮',invalid:'请输入范围内的整数'},
+ en:{title:'Light control',language:'Language',intro:'One color for all LEDs · Drag to change',preview:'Selected color preview',wheel:'Color wheel: left and right adjust hue, up and down adjust saturation',wheelHelp:'Move around to change hue, toward the center for white. Drag to change color.',settings:'Light settings',brightness:'Brightness',count:'LED count',brightnessNote:'0–255 · Updates live · Automatic power limiting',countNote:'1–100 · Applies on release · Saved across power cycles',off:'Turn all lights off',connecting:'Connecting',connected:'Connected',sending:'Sending',sent:'Sent',disconnected:'Connection lost',unknown:'Result unconfirmed',zero:'Brightness is 0',unlit:'Off',lit:'Solid color',invalid:'Enter a whole number within the range'}
+};
+let language=(navigator.language||'en').toLowerCase().startsWith('zh')?'zh':'en';
+try{const saved=localStorage.getItem('pebble-language');if(saved==='zh'||saved==='en')language=saved;}catch(e){}
+let board='Pebble',statusKey='connecting',statusError=false,unconfirmed=false;
+const t=key=>messages[language][key];
+function setLanguage(next){
+ language=next;document.documentElement.lang=next==='zh'?'zh-CN':'en';document.title=board+' · '+t('title');
+ document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
+ document.querySelectorAll('[data-i18n-aria]').forEach(el=>el.setAttribute('aria-label',t(el.dataset.i18nAria)));
+ document.querySelectorAll('[data-lang]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.lang===next)));
+ status(statusKey,statusError);render();
+}
+document.querySelectorAll('[data-lang]').forEach(el=>el.onclick=()=>{setLanguage(el.dataset.lang);try{localStorage.setItem('pebble-language',language);}catch(e){}});
+let desired={color:'#ff0000',brightness:20,count:60,enabled:false};
+const editing=new Set(),sliding=new Set();
 let wheel=null,dragging=false,lastHue=0;
 let busy=false,pending=null,offPending=false,timer=null,lastSent=-Infinity,revision=0;
-function status(text,error=false){$('status').textContent=text;$('status').dataset.error=error;}
+function status(key,error=false){statusKey=key;statusError=error;$('status').textContent=t(key);$('status').dataset.error=error;}
 function render(){
  $('preview').style.backgroundColor=desired.color;$('hex').textContent=desired.color.toUpperCase();
- syncWheel();$('brightness').value=desired.brightness;$('level').textContent=desired.brightness;
- $('light').textContent=desired.brightness===0?'亮度为 0':(!desired.enabled||desired.color==='#000000'?'已熄灭':'同色常亮');
- document.querySelectorAll('[data-color]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.color===desired.color)));
+ syncWheel();
+ ['brightness','count'].forEach(key=>{if(!sliding.has(key))$(key).value=desired[key];if(!editing.has(key))$(key+'-number').value=sliding.has(key)?$(key).value:desired[key];});
+ $('light').textContent=t(unconfirmed?'unknown':desired.brightness===0?'zero':(!desired.enabled||desired.color==='#000000'?'unlit':'lit'));
 }
 // 程序同步只更新选点，不触发用户输入事件；灰色保留上一次色相。
 function syncWheel(){
@@ -79,34 +106,47 @@ $('wheel').addEventListener('keydown',e=>{
  if(e.key==='ArrowDown')h.s=Math.max(0,h.s-step);
  wheel.color.hsv=h;wheelInput();
 });
-[['红','#ff0000'],['绿','#00ff00'],['蓝','#0000ff'],['白','#ffffff']].forEach(([label,value])=>{
- const b=document.createElement('button');b.type='button';b.dataset.color=value;b.className='quick';
- const dot=document.createElement('span');dot.className='dot';dot.style.backgroundColor=value;
- b.append(dot,document.createTextNode(label));b.onclick=()=>choose(value);$('quick').append(b);
+function commitControl(key,value){
+ desired[key]=value;revision++;render();pending={...pending,[key]:value};pump();
+}
+['brightness','count'].forEach(key=>{
+ const slider=$(key),number=$(key+'-number');
+ slider.addEventListener('input',()=>{
+  sliding.add(key);revision++;number.value=slider.value;
+  if(key==='brightness')commitControl(key,Number(slider.value));
+ });
+ slider.addEventListener('change',()=>{sliding.delete(key);commitControl(key,Number(slider.value));});
+ slider.addEventListener('blur',()=>{if(sliding.has(key)){sliding.delete(key);commitControl(key,Number(slider.value));}});
+ number.addEventListener('focus',()=>{editing.add(key);number.select();});
+ number.addEventListener('blur',()=>{
+  editing.delete(key);const value=number.valueAsNumber;
+  if(!Number.isInteger(value)||value<Number(number.min)||value>Number(number.max)){
+   number.value=desired[key];status('invalid',true);return;
+  }
+  if(value!==desired[key])commitControl(key,value);else render();
+ });
+ number.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();number.blur();}
+  if(e.key==='Escape'){e.preventDefault();number.value=desired[key];number.blur();}
+ });
 });
-$('brightness').addEventListener('input',e=>{desired.brightness=Number(e.target.value);revision++;render();pending={...pending,brightness:desired.brightness};pump();});
-$('count').addEventListener('change',async e=>{
- let v=Math.max(1,Math.min(100,Math.round(Number(e.target.value))||1));e.target.value=v;
- try{const result=await request('/api/set',{count:v});$('count').value=result.count;status('已发送');}
- catch(err){status('连接中断',true);}
-});
-$('off').onclick=()=>{desired.enabled=false;revision++;render();pending=null;offPending=true;clearTimeout(timer);pump();};
+$('off').onclick=()=>{desired.enabled=false;revision++;render();pending=pending&&pending.count!==undefined?{count:pending.count}:null;offPending=true;clearTimeout(timer);pump();};
 async function request(path,values){const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),3000);
  try{const options={signal:controller.signal,cache:'no-store'};if(values!==undefined){options.method='POST';options.body=new URLSearchParams(values);}const response=await fetch(path,options);if(!response.ok)throw Error('HTTP '+response.status);return await response.json();}finally{clearTimeout(timeout);}}
 async function pump(){
  clearTimeout(timer);if(busy||(!offPending&&!pending))return;
  const wait=80-(performance.now()-lastSent);if(!offPending&&wait>0){timer=setTimeout(pump,wait);return;}
  const off=offPending;const payload=off?{}:pending;if(off)offPending=false;else pending=null;
- busy=true;lastSent=performance.now();const sentRevision=revision;status('发送中');
+ busy=true;lastSent=performance.now();const sentRevision=revision;status('sending');
  try{const result=await request(off?'/api/off':'/api/set',payload);
- if(sentRevision===revision){desired={color:result.color,brightness:result.brightness,enabled:result.enabled};render();}status('已发送');
- }catch(e){pending=null;status('连接中断',true);$('light').textContent='结果未确认';}
+ unconfirmed=false;if(sentRevision===revision){desired={color:result.color,brightness:result.brightness,count:result.count,enabled:result.enabled,...pending};render();}status('sent');
+ }catch(e){pending=null;status('disconnected',true);unconfirmed=true;render();}
  finally{busy=false;pump();}
 }
 async function init(){render();busy=true;const initialRevision=revision;
- try{const result=await request('/api/state');if(result.board){document.querySelector('h1').textContent=result.board;document.title=result.board+' · 灯光控制';}if(result.count)$('count').value=result.count;if(revision===initialRevision){desired={color:result.color,brightness:result.brightness,enabled:result.enabled};render();}status('已连接');}
- catch(e){status('连接中断',true);}finally{busy=false;pump();}}
-init();
+ try{const result=await request('/api/state');if(result.board){board=result.board;document.querySelector('h1').textContent=board;document.title=board+' · '+t('title');}if(revision===initialRevision){desired={color:result.color,brightness:result.brightness,count:result.count,enabled:result.enabled};render();}status('connected');}
+ catch(e){status('disconnected',true);}finally{busy=false;pump();}}
+setLanguage(language);init();
 </script></body></html>)HTML";
 
 void sendState() {
