@@ -72,6 +72,17 @@ it never hands out duplicates. The letter lives in the board's flash settings
 and survives future reflashes. Commit `board_registry.json` after a provisioning
 session; it is the inventory of the class set.
 
+To upload the current firmware to an already-registered board, plug in one board
+and run:
+
+```bash
+uv run scripts/provision.py --update
+```
+
+This builds and uploads the firmware, then queries the board to verify its existing
+letter and network name. It leaves the registry (including the original date)
+unchanged. An unregistered board must be provisioned without `--update` first.
+
 ## Things to try changing first
 
 All the firmware is one file, `src/main.cpp`.
